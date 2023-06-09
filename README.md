@@ -41,6 +41,6 @@ Note that both the input `d_data` and the output  `d_output` arrays have to be a
 *PERFORMANCE*
 
 ![Picture1](https://github.com/GregorySchwing/cuStreamComp/assets/39970712/11365c93-df01-474e-bd71-e95c27bb91be)
-Thrust (T) outperforms both the Billeter (B) and Bakunas-Milanowski (H) implementations for all streams of size up to 1024*2^19.
-1024*2^20 >= are too large for thrust to compact on my Quadro RTX 5000 Mobile / Max-Q with 16 GiBytes of VRAM.
-B and H are more memory frugal that thrust and can perform compaction on a stream of at least 1024*2^20 elements.
+Thrust (T) outperforms both the Billeter (B) and Bakunas-Milanowski (H) implementations for all streams of size up to 1024x2^19.
+1024x2^20 >= are too large for thrust to compact on my Quadro RTX 5000 Mobile / Max-Q with 16 GiBytes of VRAM.
+B and H are more memory frugal that thrust and can perform compaction on a stream of at least 1024x2^20 elements.
