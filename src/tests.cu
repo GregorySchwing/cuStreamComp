@@ -3,6 +3,8 @@
 #include "cuCompactor.cuh"
 #include <chrono>
 #include <stdlib.h>
+#include <unistd.h>
+
 using namespace std;
 
 #define MAX_THREADS_PER_GRID (2**31)
@@ -77,22 +79,30 @@ uint blockSize=8;
 
 
 int main(){
+  char outputFilename[500];
+  strcpy(outputFilename, "Results.csv");
+  FILE *output_file;
+  if (access(outputFilename, F_OK) == 0)
+  {
+    // file exists
+    output_file = fopen(outputFilename, "a");
+  }
+  else
+  {
+    // file doesn't exist
+    output_file = fopen(outputFilename, "w");
+    fprintf(output_file, "%s,%s,%s,%s\n", "Method", "NumberOfElements", "NumBlocks", "Time (ms)");
+  }
+
+
 srand(time(0));
 	int *d_data, *d_output, *h_data;
 	//data elements from 2^5 to 2^29
 
 	// HYBRID
-	for(int e=10;e<21;e++){
-	//for(int e=7;e<30;e++){
-		//blocksize from 32 to 1024
-		// Warp method only handles blockSize 1024
-		//for(int b=10;b<=10;b++){
-		for(int b=5;b<=10;b++){
-			//NELEMENTS=1<<e;
-			// Warp method needs inputs of powers of 1024.
+	for(int e=10;e<20;e++){
 			NELEMENTS=(1<<10)<<e;
 			NgoodElements=0;
-			blockSize=1<<b;
 			size_t datasize=sizeof(int)*NELEMENTS;
 			//host input/output data
 			h_data = (int*) malloc(datasize);
@@ -108,8 +118,16 @@ srand(time(0));
 			//printData(h_data,NELEMENTS);
 
 			cudaMemcpy(d_data,h_data,datasize,cudaMemcpyHostToDevice);
+	//for(int e=7;e<30;e++){
+		//blocksize from 32 to 1024
+		// Warp method only handles blockSize 1024
+		//for(int b=10;b<=10;b++){
+		for(int b=5;b<=10;b++){
+			//NELEMENTS=1<<e;
+			// Warp method needs inputs of powers of 1024.
+			blockSize=1<<b;
 			//clock_t start = clock();
-			int compact_length = cuCompactor::compact<int>(d_data,d_output,NELEMENTS,int_predicate(),blockSize);
+			int compact_length = cuCompactor::compact<int>(d_data,d_output,NELEMENTS,int_predicate(),blockSize,output_file);
 			//cudaDeviceSynchronize();
 			//clock_t end = clock();
 			//unsigned long millis = (end - start) * 1000 / CLOCKS_PER_SEC;
@@ -119,7 +137,7 @@ srand(time(0));
 			//printData(h_data,NELEMENTS);
 			//checkVector(h_data,NELEMENTS,NgoodElements);
 			cudaMemset(d_output,0,datasize);
-			compact_length = cuCompactor::compactHybrid<int>(d_data,d_output,NELEMENTS,int_predicate(),blockSize);
+			compact_length = cuCompactor::compactHybrid<int>(d_data,d_output,NELEMENTS,int_predicate(),blockSize,output_file);
 			//cudaDeviceSynchronize();
 			//clock_t end = clock();
 			//unsigned long millis = (end - start) * 1000 / CLOCKS_PER_SEC;
@@ -128,25 +146,26 @@ srand(time(0));
 			cudaMemcpy(h_data,d_output,datasize,cudaMemcpyDeviceToHost);
 			//printData(h_data,NELEMENTS);
 			//checkVector(h_data,NELEMENTS,NgoodElements);
-			cudaMemset(d_output,0,datasize);
-			compact_length = cuCompactor::compactThrust<int>(d_data,d_output,NELEMENTS,int_predicate());
-			//cudaDeviceSynchronize();
-			//clock_t end = clock();
-			//unsigned long millis = (end - start) * 1000 / CLOCKS_PER_SEC;
-			assert(compact_length==NgoodElements);
-			//copy back results to host
-			cudaMemcpy(h_data,d_output,datasize,cudaMemcpyDeviceToHost);
-			//printData(h_data,NELEMENTS);
-			//checkVector(h_data,NELEMENTS,NgoodElements);
-
-
-			//device memory free
-			cudaFree(d_data);
-			cudaFree(d_output);
-			//host free  memory
-			free(h_data);
-			//printf("B,%i,%i,%i\n",NELEMENTS,blockSize,millis);
 		}//for blocksize
+		cudaMemset(d_output,0,datasize);
+		int compact_length = cuCompactor::compactThrust<int>(d_data,d_output,NELEMENTS,int_predicate(),output_file);
+		//cudaDeviceSynchronize();
+		//clock_t end = clock();
+		//unsigned long millis = (end - start) * 1000 / CLOCKS_PER_SEC;
+		assert(compact_length==NgoodElements);
+		//copy back results to host
+		cudaMemcpy(h_data,d_output,datasize,cudaMemcpyDeviceToHost);
+		//printData(h_data,NELEMENTS);
+		//checkVector(h_data,NELEMENTS,NgoodElements);
+
+
+		//device memory free
+		cudaFree(d_data);
+		cudaFree(d_output);
+		//host free  memory
+		free(h_data);
+		//printf("B,%i,%i,%i\n",NELEMENTS,blockSize,millis);
 	}//for elements
+	fclose(output_file);
 	printf("ALL TEST PASSED");
 }
