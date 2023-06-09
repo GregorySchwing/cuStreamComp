@@ -1,11 +1,13 @@
 # cuStreamComp
 Efficient CUDA Stream Compaction Library
 
-Based on thw folllowing works:
+Based on the folllowing works:
 
 1. Markus Billeter et al. Efficient Stream Compaction on Wide SIMD Many-Core Architectures
 
 2. InK-Compact-: In kernel Stream Compaction and Its Application to Multi-kernel Data Visualization on GPGPU- D.M. Hughes
+
+3. Darius Bakunas-Milanowski et al. Efficient Algorithms for Stream Compaction on GPUs
 
 It is an CUDA efficient implementation of the stream compaction algorithm based on **warp ballotting intrinsic**.
 
@@ -28,6 +30,9 @@ struct predicate
 
 ```
 cuCompactor::compact<int>(d_data,d_output,length,predicate(),blockSize);
+cuCompactor::compactHybrid<int>(d_data,d_output,length,predicate(),blockSize);
+cuCompactor::compactThrust<int>(d_data,d_output,length,predicate());
+
 ```
 
 Note that both the input `d_data` and the output  `d_output` arrays have to be allocated on device.
