@@ -18,6 +18,12 @@
 
 namespace cuCompactor {
 
+template <typename T,typename Predicate>
+int compact(T* d_input,T* d_output,int length, Predicate predicate, int blockSize, FILE * fileptr=NULL);
+template <typename T,typename Predicate>
+int compactHybrid(T* d_input,T* d_output,int length, Predicate predicate, int blockSize, FILE * fileptr=NULL);
+template <typename T,typename Predicate>
+int compactThrust(T* d_input,T* d_output,int length, Predicate predicate, FILE * fileptr=NULL);
 #define warpSize (32)
 #define FULL_MASK 0xffffffff
 
@@ -288,7 +294,7 @@ __global__  void printArray_GPU(T* hd_data, int size,int newline){
 }
 
 template <typename T,typename Predicate>
-int compact(T* d_input,T* d_output,int length, Predicate predicate, int blockSize){
+int compact(T* d_input,T* d_output,int length, Predicate predicate, int blockSize, FILE * fileptr){
 	int numBlocks = divup(length,blockSize);
 	int* d_BlocksCount;
 	int* d_BlocksOffset;
@@ -316,7 +322,10 @@ int compact(T* d_input,T* d_output,int length, Predicate predicate, int blockSiz
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&millis,start,stop);
 	// end time here
-	printf("B,%i,%i,%f\n",length,blockSize,millis);
+	if (fileptr == NULL)
+		printf("B,%i,%f\n",length,millis);
+	else
+		fprintf(fileptr, "%s,%i,%i,%f\n", "B", length,blockSize,millis);
 	// determine number of elements in the compacted list
 	int compact_length = thrustPrt_bOffset[numBlocks-1] + thrustPrt_bCount[numBlocks-1];
 
@@ -327,7 +336,7 @@ int compact(T* d_input,T* d_output,int length, Predicate predicate, int blockSiz
 }
 
 template <typename T,typename Predicate>
-int compactHybrid(T* d_input,T* d_output,int length, Predicate predicate, int blockSize){
+int compactHybrid(T* d_input,T* d_output,int length, Predicate predicate, int blockSize, FILE * fileptr){
 	int WARPS_PER_BLOCK = divup(blockSize,THREADS_PER_WARP);
 
 	int numWarps = divup(length,THREADS_PER_WARP*THREADS_PER_WARP);
@@ -385,7 +394,10 @@ int compactHybrid(T* d_input,T* d_output,int length, Predicate predicate, int bl
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&millis,start,stop);
 	// end time here
-	printf("H,%i,%i,%f\n",length,blockSize,millis);
+	if (fileptr == NULL)
+		printf("H,%i,%f\n",length,millis);
+	if (fileptr != NULL)
+		fprintf(fileptr, "%s,%i,%i,%f\n", "H", length,blockSize,millis);
 	// determine number of elements in the compacted list
 	int compact_length = thrustPrt_wOffset[numWarps-1];
 	cudaFree(d_BlockCounts);
@@ -398,7 +410,7 @@ int compactHybrid(T* d_input,T* d_output,int length, Predicate predicate, int bl
 
 
 template <typename T,typename Predicate>
-int compactThrust(T* d_input,T* d_output,int length, Predicate predicate){
+int compactThrust(T* d_input,T* d_output,int length, Predicate predicate, FILE * fileptr){
 	thrust::device_ptr<int> thrustPrt_input(d_input);
 	thrust::device_ptr<int> thrustPrt_output(d_output);
 	thrust::device_vector<int> thrustVec_input(thrustPrt_input, thrustPrt_input + length); 
@@ -421,7 +433,10 @@ int compactThrust(T* d_input,T* d_output,int length, Predicate predicate){
 		cudaEventSynchronize(stop);
 		cudaEventElapsedTime(&millis,start,stop);
 		// end time here
-		printf("T,%i,%f\n",length,millis);
+		if (fileptr == NULL)
+			printf("T,%i,%f\n",length,millis);
+		else
+			fprintf(fileptr, "%s,%i,%i,%f\n", "T", length,0,millis);
 		// determine number of elements in the compacted list
 		compact_length = (indices_end-thrustVec_output.begin());
 	} catch (const char* msg) {
