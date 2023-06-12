@@ -52,15 +52,17 @@ __device__ inline int lane_id(void) { return threadIdx.x % WARP_SZ; }
 template <typename T,typename Predicate>
 __global__ void computeWarpCounts(T* d_input,int length,unsigned int *pred,int*d_BlockCounts,Predicate predicate){
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    if (tid >= (length >> 5) ) // divide by 32
-        return;
+    //if (tid >= (length >> 5) ) // divide by 32
+    //    return;
 
     int lnid = lane_id();
     int warp_id = tid >> 5; // global warp number
+    if (warp_id > (length >> 10) ) // divide by 32
+        return;
     unsigned int mask;
     int cnt;
     for(int i = 0; i < 32 ; i++) {
-        mask = __ballot(predicate(d_input[(warp_id<<10)+(i<<5)+lnid]));
+        mask = __ballot(((warp_id<<10)+(i<<5)+lnid)<length && predicate(d_input[(warp_id<<10)+(i<<5)+lnid]));
         //mask = __ballot_sync(0xFFFFFFFF,predicate(d_input[(warp_id<<10)+(i<<5)+lnid]));
 
         if (lnid == 0){
@@ -197,12 +199,13 @@ __global__ void compactKKey(T* d_input,int length, T* d_output,int* d_BlocksOffs
 template <typename T>
 __global__ void phase3Key(T* d_input,const int length, T* d_output,int* d_BlockCounts,unsigned int *pred){
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    if (tid >= (length >> 5) ) // divide by 32
-        return;
+    //if (tid >= (length >> 5) ) // divide by 32
+    //    return;
 
     int lnid = lane_id();
     int warp_id = tid >> 5; // global warp number
-
+    if (warp_id > (length >> 10) ) // divide by 32
+        return;
     unsigned int predmask;
     int cnt;
 
