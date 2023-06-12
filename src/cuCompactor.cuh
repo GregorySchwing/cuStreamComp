@@ -354,9 +354,10 @@ int compactHybrid(T* d_input,T* d_output,int length, Predicate predicate, int bl
 	CUDASAFECALL (cudaMalloc(&d_BlocksOffset,sizeof(int)*numWarps));
 	// Each iteration (32) has a pred.
 	CUDASAFECALL (cudaMalloc(&d_Pred,sizeof(unsigned int)*numWarps*THREADS_PER_WARP));
-	//CUDASAFECALL (cudaMalloc(&d_Pred,sizeof(unsigned int)*numWarps*WARPS_PER_BLOCK));
-	//CUDASAFECALL (cudaMalloc(&d_Pred,sizeof(unsigned int)*length));
-
+	CUDASAFECALL (cudaMemset(d_BlockCounts,0,sizeof(int)*numWarps));
+	CUDASAFECALL (cudaMemset(d_BlocksOffset,0,sizeof(int)*numWarps));
+	// Each iteration (32) has a pred.
+	CUDASAFECALL (cudaMemset(d_Pred,0,sizeof(unsigned int)*numWarps*THREADS_PER_WARP));
 	thrust::device_ptr<int> thrustPrt_wCount(d_BlockCounts);
 	thrust::device_ptr<int> thrustPrt_wOffset(d_BlocksOffset);
 
