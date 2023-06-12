@@ -57,7 +57,7 @@ __global__ void computeWarpCounts(T* d_input,int length,unsigned int *pred,int*d
 
     int lnid = lane_id();
     int warp_id = tid >> 5; // global warp number
-    if (warp_id > (length >> 10) ) // divide by 32
+    if ( warp_id >= divup(length, WARP_SZ*WARP_SZ) ) // divide by 1024
         return;
     unsigned int mask;
     int cnt;
@@ -204,7 +204,7 @@ __global__ void phase3Key(T* d_input,const int length, T* d_output,int* d_BlockC
 
     int lnid = lane_id();
     int warp_id = tid >> 5; // global warp number
-    if (warp_id > (length >> 10) ) // divide by 32
+    if ( warp_id >= divup(length, WARP_SZ*WARP_SZ) ) // divide by 1024
         return;
     unsigned int predmask;
     int cnt;
@@ -248,7 +248,7 @@ __global__ void phase3(T* d_input,const int length, T* d_output,int* d_BlockCoun
 
     int lnid = lane_id();
     int warp_id = tid >> 5; // global warp number
-    if (warp_id > (length >> 10) ) // divide by 32
+    if ( warp_id >= divup(length, WARP_SZ*WARP_SZ) ) // divide by 1024
         return;
     unsigned int predmask;
     int cnt;
