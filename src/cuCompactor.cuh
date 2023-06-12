@@ -243,12 +243,13 @@ __global__ void phase3Key(T* d_input,const int length, T* d_output,int* d_BlockC
 template <typename T>
 __global__ void phase3(T* d_input,const int length, T* d_output,int* d_BlockCounts,unsigned int *pred){
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    if (tid >= (length >> 5) ) // divide by 32
-        return;
+    //if (tid >= (length >> 5) ) // divide by 32
+    //    return;
 
     int lnid = lane_id();
     int warp_id = tid >> 5; // global warp number
-
+    if (warp_id > (length >> 10) ) // divide by 32
+        return;
     unsigned int predmask;
     int cnt;
 
